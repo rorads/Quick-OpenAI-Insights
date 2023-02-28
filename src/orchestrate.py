@@ -13,9 +13,10 @@ def main():
     """
     file_path = 'data/raw/HMRC DALAS Transcript Raw.txt'
     text_file = TextFile(file_path)
-    data_frame = text_file.get_data_frame()
-    text_file.save_data_frame('data/intermediate/processed.json')
-    print(data_frame.head())
+    # data_frame = text_file.get_data_frame()
+    # text_file.save_data_frame('data/intermediate/processed.json')
+    text_file.roll_up_df(chunksize=10)
+    print(text_file.data_frame.head())
 
 
 if __name__ == "__main__":

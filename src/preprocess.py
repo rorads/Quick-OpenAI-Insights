@@ -45,6 +45,36 @@ class TextFile():
         data_frame = pd.DataFrame(data, columns=['timestamp', 'text'])
         return data_frame
 
+    def timestamp_helper(self, timestamp: str):
+        """
+        Helper function to convert timestamp to datetime. timestam is in the
+        format MM:SS for durations under one hour, and HH:MM:SS for durations
+        over one hour.
+        """
+        if len(timestamp.split(':')) == 2:
+            return pd.to_datetime(timestamp, format='%M:%S').time()
+        else:
+            return pd.to_datetime(timestamp, format='%H:%M:%S').time()
+
+    def roll_up_df(self, chunksize=10):
+        """
+        Roll up the dataframe into chunks of the given size, concatenating
+        the text from all consituent rows and using the first timestamp.
+        """
+        # convert timestamp to datetime using helper function
+        self.data_frame['timestamp'] = self.data_frame['timestamp'].apply(
+            self.timestamp_helper)
+
+        # TODO: sort this out - doesn't currently work
+        # roll up the dataframe into chunks of the given size, concatenating 
+        # the text from all consituent rows and using the first timestamp
+        # this should not be done using a groupby of the timestamp
+        # as the timestamp is not necessarily unique
+        # instead, use the pandas rolling function
+        # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.rolling.html
+        self.data_frame = self.data_frame.rolling(
+            window=chunksize, min_periods=1)
+
     def get_data_frame(self):
         """
         Return the dataframe.
