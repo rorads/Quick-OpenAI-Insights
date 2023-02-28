@@ -4,7 +4,7 @@ on a text file. Import TextFile class from src/refactor.py to read the text
 file and return a dataframe with timestamp and text.
 """
 
-from src.preprocess import TextFile
+from preprocess import TextFile
 
 
 def main():
