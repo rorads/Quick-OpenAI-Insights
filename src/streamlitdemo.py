@@ -1,12 +1,15 @@
-# set up a streamlit dashboard to display the data in data/intermediate/processed.json
-# 
+# set up a streamlit dashboard to display the data in
+# data/intermediate/processed.json
+#
 # Compare this snippet from src/streamlitdemo.py:
 # """
-# This script uses existing python classes from this project to run NLP analysis
-# on a text file. Import TextFile class from src/refactor.py to read the text
-# file and return a dataframe with timestamp and text.
+# This script uses existing python classes from this project to
+# run NLP analysis on a text file. Import TextFile class from
+# src/refactor.py to read the text file and return a dataframe with
+# timestamp and text.
 # """
-# 
+#
+
 import streamlit as st
 import pandas as pd
 
