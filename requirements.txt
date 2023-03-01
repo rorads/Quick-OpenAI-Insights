@@ -17,6 +17,7 @@ cycler==0.11.0
 debugpy==1.6.6
 decorator==5.1.1
 entrypoints==0.4
+et-xmlfile==1.1.0
 executing==1.2.0
 filelock==3.9.0
 fonttools==4.38.0
@@ -44,6 +45,7 @@ multidict==6.0.4
 nest-asyncio==1.5.6
 numpy==1.24.2
 openai==0.26.5
+openpyxl==3.1.1
 packaging==23.0
 pandas==1.5.3
 parso==0.8.3
@@ -65,6 +67,7 @@ Pympler==1.0.1
 pyparsing==3.0.9
 pyrsistent==0.19.3
 python-dateutil==2.8.2
+python-decouple==3.7
 python-dotenv==1.0.0
 pytz==2022.7.1
 pytz-deprecation-shim==0.1.0.post0
@@ -79,6 +82,7 @@ six==1.16.0
 smmap==5.0.0
 stack-data==0.6.2
 streamlit==1.19.0
+streamlit-aggrid==0.3.3
 tenacity==8.2.1
 threadpoolctl==3.1.0
 tiktoken==0.2.0
