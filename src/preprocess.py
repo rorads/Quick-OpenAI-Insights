@@ -57,7 +57,7 @@ class YTVideoTranscript():
         """
         Remove simple stopwords from the text column.
         """
-        # create a list of words which people say when they are thinking like 
+        # create a list of words which people say when they are thinking like
         # 'oh' and 'um' and 'ah'.
         thinking_words = ['oh', 'um', 'ah', 'uh', 'er', 'mm',
                           'hm', 'hmm', 'hmmm', 'huh', 'uhh',
@@ -93,7 +93,7 @@ class YTVideoTranscript():
             # Get the first value of the first column in the chunk
             col1_value = df.iloc[i]["timestamp"]
 
-            # Get all the values of the second column in the chunk and 
+            # Get all the values of the second column in the chunk and
             # concatenate them
             col2_value = " ".join(df.iloc[i:i+n]["text"].values)
 
