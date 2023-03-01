@@ -1,5 +1,6 @@
 # set up a streamlit dashboard to display the data in
 # data/intermediate/processed.json
+# -------------------------------------------------
 #
 # Compare this snippet from src/streamlitdemo.py:
 # """
