@@ -36,6 +36,16 @@ def main():
     # Enable multi-row selection
     gb.configure_selection('multiple', use_checkbox=True,
                            groupSelectsChildren="Group checkbox select children")
+
+    # Enable pivot mode on the topic column
+    gb.configure_column('topic', enableRowGroup=True, enablePivot=True)
+
+    # configure the metrics columns to be aggregated in pivot mode
+    gb.configure_column('sentiment', aggFunc='avg')
+    gb.configure_column('urgency', aggFunc='avg')
+    gb.configure_column('questioning', aggFunc='avg')
+    gb.configure_column('descriptive_normative', aggFunc='avg')
+
     gridOptions = gb.build()
 
     grid_response = AgGrid(
@@ -59,6 +69,12 @@ def main():
 
     # write text to the streamlit dashboard
     st.write(f"Filtered data frame shape: {intermediate_df.shape}")
+
+    # create a line chart plotting the urgency, sentiment, questioning, and
+    # descriptive_normative columns against the index and write it to the
+    # dashboard. TODO: Make all the lines be destinct colors.
+    st.line_chart(data_frame[['urgency', 'sentiment',
+                              'questioning', 'descriptive_normative']])
 
 
 if __name__ == "__main__":
