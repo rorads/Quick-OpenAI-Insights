@@ -1,20 +1,9 @@
-# set up a streamlit dashboard to display the data in
-# data/intermediate/processed.json
-# -------------------------------------------------
-#
-# Compare this snippet from src/streamlitdemo.py:
-# """
-# This script uses existing python classes from this project to
-# run NLP analysis on a text file. Import TextFile class from
-# src/refactor.py to read the text file and return a dataframe with
-# timestamp and text.
-# """
-
 # see https://towardsdatascience.com/make-dataframes-interactive-in-streamlit-c3d0c4f84ccb
 
 import streamlit as st
 import pandas as pd
-from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode, DataReturnMode
+from st_aggrid import GridOptionsBuilder, AgGrid
+# can also import GridUpdateMode, DataReturnMode
 
 
 def do_stuff_on_page_load():
@@ -62,19 +51,27 @@ def main():
     )
 
     data_frame = grid_response['data']
-    selected = grid_response['selected_rows']
+    # selected = grid_response['selected_rows']
 
-    # Pass the selected rows to a new dataframe df
-    intermediate_df = pd.DataFrame(selected)
+    # create a duplicate table of the data frame with the columns for urgency,
+    # sentiment, questioning, and descriptive_normative all as a rolling average
+    rolling_df = data_frame.copy()
+    rolling_df['urgency'] = rolling_df['urgency'].rolling(10).mean()
+    rolling_df['sentiment'] = rolling_df['sentiment'].rolling(10).mean()
+    rolling_df['questioning'] = rolling_df['questioning'].rolling(10).mean()
+    rolling_df['descriptive_normative'] = rolling_df['descriptive_normative'].rolling(
+        10).mean()
 
-    # write text to the streamlit dashboard
-    st.write(f"Filtered data frame shape: {intermediate_df.shape}")
-
-    # create a line chart plotting the urgency, sentiment, questioning, and
-    # descriptive_normative columns against the index and write it to the
-    # dashboard. TODO: Make all the lines be destinct colors.
-    st.line_chart(data_frame[['urgency', 'sentiment',
-                              'questioning', 'descriptive_normative']])
+    # create a line chart plotting urgency, sentiment, questioning, and
+    # descriptive_normative columns from the rolling_df dataframe
+    # and add a selector to choose which columns to plot
+    selected_columns = st.multiselect(
+        'Select columns to plot',
+        rolling_df.columns,
+        default=['urgency', 'sentiment',
+                 'questioning', 'descriptive_normative']
+    )
+    st.line_chart(rolling_df[selected_columns])
 
 
 if __name__ == "__main__":
