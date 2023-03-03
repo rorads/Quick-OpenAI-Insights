@@ -5,7 +5,8 @@ timestamp and text.
 
 # TODO: reading the following:
 # - https://platform.openai.com/docs/guides/embeddings/use-cases
-# - https://github.com/openai/openai-cookbook/blob/2f5e350bbe66a418184899b0e12f182dbb46a156/examples/Obtain_dataset.ipynb
+# - https://github.com/openai/openai-cookbook/blob/
+#           2f5e350bbe66a418184899b0e12f182dbb46a156/examples/Obtain_dataset.ipynb
 # - https://github.com/openai/openai-cookbook/blob/main/examples/Clustering.ipynb
 
 # imports

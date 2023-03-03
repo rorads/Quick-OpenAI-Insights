@@ -4,10 +4,12 @@ on a text file. Import TextFile class from src/refactor.py to read the text
 file and return a dataframe with timestamp and text.
 """
 
+import pandas as pd
+import openai_prompt_engine
 from preprocess import YTVideoTranscript
 
 
-def main():
+def run_text_processing():
     """
     Main function to run NLP analysis on a text file.
     """
@@ -18,5 +20,19 @@ def main():
     print(text_file.get_data_frame().head())
 
 
+def run_transcript_processing():
+    """
+    Main function to run NLP analysis on a text file.
+    """
+    df = pd.read_json('data/intermediate/processed.json', orient='records', lines=True)
+    df = openai_prompt_engine.run_prompts_transcript(
+        df, prompt_template_path='prompt_v1.j2', temperature=0.0)  # run with no downsample
+    df.to_json('data/final/output.json',
+               orient='records', lines=True)
+    df.to_excel('data/final/output.xlsx',
+                sheet_name='Output', index=False)
+
+
 if __name__ == "__main__":
-    main()
+    run_text_processing()
+    run_transcript_processing()
