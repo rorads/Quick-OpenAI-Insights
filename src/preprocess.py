@@ -78,10 +78,10 @@ class YTVideoTranscript():
             return pd.to_datetime(timestamp, format='%M:%S').time()
         else:
             return pd.to_datetime(timestamp, format='%H:%M:%S').time()
-     
+
     def _timestamp_to_seconds(self, timestamp: str):
         """
-        Convert timestamp to the total number of seconds including the hours and minutes. 
+        Convert timestamp to the total number of seconds including the hours and minutes.
         Timestamp is in the format MM:SS for durations under one hour, and HH:MM:SS for durations over one hour.
         """
         time = self._timestamp_helper(timestamp)
