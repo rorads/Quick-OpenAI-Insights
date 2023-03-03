@@ -7,7 +7,7 @@ from st_aggrid import GridOptionsBuilder, AgGrid
 
 
 def on_page_load():
-    # st.set_page_config(layout="wide")
+    st.set_page_config(layout="wide")
     st.title("HMRC DALAS Transcript Demo")
     st.write("This is a demo of the HMRC DALAS Transcript project.")
     st.set_option('deprecation.showPyplotGlobalUse', False)
@@ -48,6 +48,9 @@ def main():
     """
     file_path = 'data/final/v2output.json'
     data_frame = pd.read_json(file_path, orient='records', lines=True)
+
+    data_frame['youtube_link'] = data_frame['timestamp'].apply(
+        lambda x: f"https://youtu.be/Ir3TIRmaSL8?t={x}")
 
     plot_wordcloud(data_frame)
 
