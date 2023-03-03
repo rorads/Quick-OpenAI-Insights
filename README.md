@@ -1,5 +1,10 @@
-Quick setup steps
+## Aim
 
+Currently, this project is a quick demonstration of OpenAI as a way of running analysis on text.
+
+Specifically, this project looks at this video: https://www.youtube.com/watch?v=Ir3TIRmaSL8, and creates a dashboard currently published here: https://rorads-quick-openai-insights-srcstreamlitdemo-1igria.streamlit.app/.
+
+## Quick setup steps
 
 Set up Python: 
 
