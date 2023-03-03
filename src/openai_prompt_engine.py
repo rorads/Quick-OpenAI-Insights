@@ -1,43 +1,33 @@
+import os
 import json
 import openai
-from preprocess import YTVideoTranscript
+import pandas as pd
+from jinja2 import Environment, FileSystemLoader
 from dotenv import load_dotenv
 load_dotenv()
 
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-def make_prompt(text: str):
+
+def make_prompt_jinja(text: str, template_path: str):
     """
-    Returns a prompt for the autocomplete api with a pre-defined json
-    structure and the text to summarize.
+    Returns a prompt for the autocomplete api with a pre-defined json structure and the text to summarize.
     Args:
         text (str): the text to summarize
+        template_path (str): the path to the template to use. This should be in the prompt_templates folder,
+        and the path should be relative to that folder.
     """
-    prompt = """
-    What follows is a chunk of text. I want you to return a json string with the following structure.
-    Note that the source text contains no punctuation, and doesn't have well defined boundaries between sentences.
-    Json structure:
-    {{
-        "topic": "a two or three word topic for the text",
-        "tags": "a space separated list of at most five important tags for the text, each tag in quotes, and the list enclosed in square brackets",
-        "sentiment": a sentiment score for the text, ranging from 0 to 1,
-        "urgency": an urgency score for the text, ranging from 0 to 1, where 0 is not urgent and 1 is very urgent,
-        "descriptive_normative": a descriptiveness and normativitiy score for the text, ranging from 0 to 1, where 0 is descriptive and 1 is normative,
-        "questioning": a questioning score for the text, ranging from 0 to 1, where 0 is not questioning and 1 is very questioning,
-    }}
+    # load the template
+    env = Environment(loader=FileSystemLoader('./src/prompt_templates'))
+    template = env.get_template(template_path)
 
-    text:
-    \"\"\"
-    {}
-    \"\"\"
-    """.format(text)
+    # render the template
+    prompt = template.render(text=text)
 
     return prompt
 
 
-def get_dict_from_prompt(
-                prompt: str,
-                temperature: float = 0.2,
-                engine: str = "text-davinci-003"):
+def get_dict_from_prompt(prompt: str, temperature: float, engine: str):
     """
     Returns a json string from a prompt for the autocomplete api.
     Args:
@@ -56,6 +46,7 @@ def get_dict_from_prompt(
         presence_penalty=0
     )
     output_dict = parse_output_text(response['choices'][0]['text'])
+    print(output_dict)
     return output_dict
 
 
@@ -70,21 +61,43 @@ def parse_output_text(output_text: str):
     for line in output_text.split("\n"):
         json_text += line.strip()
     # Parse the JSON data using the loads() function
+
     data = json.loads(json_text)
+
+    # wrap the line above in a try/except block which handles JSONDecodeError
+    # if the json_text is not valid json, return an empty dictionary
+    try:
+        data = json.loads(json_text)
+    except json.decoder.JSONDecodeError:
+        print("JSONDecodeError")
+        # halt the program
+        raise
+
     return data
 
 
-# create a main method
-def main():
-    # get a rolled up dataframe to work with
-    file_path = 'data/raw/HMRC DALAS Transcript Raw.txt'
-    text_file = YTVideoTranscript(file_path, chunksize=10)
+def run_prompts_transcript(df: pd.DataFrame,
+                           prompt_template_path: str,
+                           downsample: float = 1.0,
+                           temperature: float = 0.2,
+                           engine: str = "text-davinci-003"
+                           ):
+    """
+    Returns a dataframe with the output from the autocomplete api added as columns.
+    Args:
+        df (pd.DataFrame): the dataframe to process
+        prompt_template_path (str): the path to the prompt template to use (relative to the prompt_templates folder)
+        downsample (float): the fraction of rows to downsample the dataframe to.
+        This is useful for testing, and should be set to 1.0 for production.
+        temperature (float): the temperature to use for the autocomplete api
+        engine (str): the engine to use for the autocomplete api
+    """
 
-    # downsample the dataframe to 25% of the original size
-    # df = text_file.get_data_frame().sample(frac=0.02, random_state=42)
-    df = text_file.get_data_frame()
+    # apply downsample to the dataframe if it's not 1.0
+    if downsample != 1.0:
+        df = df.sample(frac=downsample, random_state=42)
 
-    df['prompt'] = df['text'].apply(lambda x: make_prompt(x))
+    df['prompt'] = df['text'].apply(lambda x: make_prompt_jinja(text=x, template_path=prompt_template_path))
 
     # use tqdm to show a progress bar
     from tqdm import tqdm
@@ -93,7 +106,7 @@ def main():
     # apply the get_dict_from_prompt function to the dataframe using
     # the prompt column
     df['output'] = df['prompt'].progress_apply(
-        lambda x: get_dict_from_prompt(x))
+        lambda x: get_dict_from_prompt(x, temperature, engine))
 
     # move values from the output column into their own columns
     df['topic'] = df['output'].apply(lambda x: x['topic'])
@@ -107,14 +120,21 @@ def main():
     # drop the prompt and output columns
     df = df.drop(columns=['prompt', 'output'])
 
-    # save the dataframe to a json file in the final folder,
-    # named downsampled_output.json
-    df.to_json('data/final/downsampled_output.json',
-               orient='records', lines=True)
-    df.to_excel('data/final/downsampled_output.xlsx',
-                sheet_name='Output', index=False)
+    return df
 
 
 # run the main function
 if __name__ == "__main__":
-    main()
+    """
+    Main function to run NLP analysis on a text file. This assumes that the text
+    file is in the data/intermediate folder, and creates a downsampled_output.json
+    and downsampled_output.xlsx file in the data/final folder. This is used
+    for testing and development purposes.
+    """
+    # set the openai api key
+    df = pd.read_json('data/intermediate/processed.json', orient='records', lines=True)
+    df = run_prompts_transcript(df, prompt_template_path='prompt_v1.j2', downsample=0.1)
+    df.to_json('data/final/downsampled_output.json',
+               orient='records', lines=True)
+    df.to_excel('data/final/downsampled_output.xlsx',
+                sheet_name='Output', index=False)

@@ -6,18 +6,70 @@ from st_aggrid import GridOptionsBuilder, AgGrid
 # can also import GridUpdateMode, DataReturnMode
 
 
-def do_stuff_on_page_load():
-    st.set_page_config(layout="wide")
+def on_page_load():
+    # st.set_page_config(layout="wide")
     st.title("HMRC DALAS Transcript Demo")
     st.write("This is a demo of the HMRC DALAS Transcript project.")
+    st.set_option('deprecation.showPyplotGlobalUse', False)
+
+
+def plot_wordcloud(data_frame: pd.DataFrame):
+    """
+    Plots a wordcloud of the transcript.
+    Args:
+        data_frame (pd.DataFrame): the dataframe to process
+    """
+
+    st.title("Wordcloud")
+    st.write("This is a wordcloud of the transcript.")
+    from wordcloud import WordCloud
+    import matplotlib.pyplot as plt
+
+    # create a single string of all the tags and topics, minus the HMRC and Supplier tags
+    text = ' '.join([tag for tag in data_frame['tags'] for tag in tag])
+    text = text + ' '.join([topic for topic in data_frame['topic']])
+    text = text.lower()
+    text = text.replace('hmrc', '').replace('supplier', '')
+
+    # Create and generate a word cloud image:
+    wordcloud = WordCloud(width=1200, height=600, background_color='black').generate(text)
+
+    # Display the generated image:
+    plt.figure(figsize=(10, 5))
+    plt.imshow(wordcloud, interpolation='bilinear')
+    plt.axis("off")
+    plt.show()
+    st.pyplot()
 
 
 def main():
     """
     Main function to run NLP analysis on a text file.
     """
-    file_path = 'data/final/downsampled_output.json'
+    file_path = 'data/final/v2output.json'
     data_frame = pd.read_json(file_path, orient='records', lines=True)
+
+    plot_wordcloud(data_frame)
+
+    # create a duplicate table of the data frame with the columns for urgency,
+    # sentiment, questioning, and descriptive_normative all as a rolling average
+    rolling_df = data_frame.copy()
+    rolling_df['urgency'] = rolling_df['urgency'].rolling(10).mean()
+    rolling_df['sentiment'] = rolling_df['sentiment'].rolling(10).mean()
+    rolling_df['questioning'] = rolling_df['questioning'].rolling(10).mean()
+    rolling_df['descriptive_normative'] = rolling_df['descriptive_normative'].rolling(
+        10).mean()
+
+    # create a line chart plotting urgency, sentiment, questioning, and
+    # descriptive_normative columns from the rolling_df dataframe
+    # and add a selector to choose which columns to plot
+    selected_columns = st.multiselect(
+        'Select columns to plot',
+        rolling_df.columns,
+        default=['urgency', 'sentiment',
+                 'questioning', 'descriptive_normative']
+    )
+    st.line_chart(rolling_df[selected_columns])
 
     gb = GridOptionsBuilder.from_dataframe(data_frame)
     gb.configure_pagination(paginationAutoPageSize=20)  # Add pagination
@@ -53,27 +105,7 @@ def main():
     data_frame = grid_response['data']
     # selected = grid_response['selected_rows']
 
-    # create a duplicate table of the data frame with the columns for urgency,
-    # sentiment, questioning, and descriptive_normative all as a rolling average
-    rolling_df = data_frame.copy()
-    rolling_df['urgency'] = rolling_df['urgency'].rolling(10).mean()
-    rolling_df['sentiment'] = rolling_df['sentiment'].rolling(10).mean()
-    rolling_df['questioning'] = rolling_df['questioning'].rolling(10).mean()
-    rolling_df['descriptive_normative'] = rolling_df['descriptive_normative'].rolling(
-        10).mean()
-
-    # create a line chart plotting urgency, sentiment, questioning, and
-    # descriptive_normative columns from the rolling_df dataframe
-    # and add a selector to choose which columns to plot
-    selected_columns = st.multiselect(
-        'Select columns to plot',
-        rolling_df.columns,
-        default=['urgency', 'sentiment',
-                 'questioning', 'descriptive_normative']
-    )
-    st.line_chart(rolling_df[selected_columns])
-
 
 if __name__ == "__main__":
-    do_stuff_on_page_load()
+    on_page_load()
     main()

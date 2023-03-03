@@ -33,7 +33,7 @@ class YTVideoTranscript():
 
         self.file_path = file_path
         self.data_frame = self._read_file()
-        self.remove_thinking_words()
+        self._remove_thinking_words()
         self.roll_up_df(chunksize=chunksize)
 
     def _read_file(self):
@@ -53,7 +53,7 @@ class YTVideoTranscript():
         data_frame = pd.DataFrame(data, columns=['timestamp', 'text'])
         return data_frame
 
-    def remove_thinking_words(self):
+    def _remove_thinking_words(self):
         """
         Remove simple stopwords from the text column.
         """
@@ -68,9 +68,9 @@ class YTVideoTranscript():
             lambda x: ' '.join([word for word in x.split() if word not in
                                 thinking_words]))
 
-    def timestamp_helper(self, timestamp: str):
+    def _timestamp_helper(self, timestamp: str):
         """
-        Helper function to convert timestamp to datetime. timestam is in the
+        Helper function to convert timestamp to datetime. timestamp is in the
         format MM:SS for durations under one hour, and HH:MM:SS for durations
         over one hour.
         """
@@ -78,6 +78,14 @@ class YTVideoTranscript():
             return pd.to_datetime(timestamp, format='%M:%S').time()
         else:
             return pd.to_datetime(timestamp, format='%H:%M:%S').time()
+     
+    def _timestamp_to_seconds(self, timestamp: str):
+        """
+        Convert timestamp to the total number of seconds including the hours and minutes. 
+        Timestamp is in the format MM:SS for durations under one hour, and HH:MM:SS for durations over one hour.
+        """
+        time = self._timestamp_helper(timestamp)
+        return time.hour * 3600 + time.minute * 60 + time.second
 
     def rollup_df(self, df, n):
         """
@@ -119,7 +127,7 @@ class YTVideoTranscript():
 
         else:
             self.data_frame['timestamp'] = self.data_frame['timestamp'].apply(
-                lambda x: self.timestamp_helper(x))
+                lambda x: self._timestamp_to_seconds(x))
 
             self.data_frame = self.rollup_df(self.data_frame, chunksize)
 
@@ -144,7 +152,7 @@ if __name__ == '__main__':
         """
         file_path = 'data/raw/HMRC DALAS Transcript Raw.txt'
         text_file = YTVideoTranscript(file_path)
-        text_file.save_data_frame('data/intermediate/processed.json')
+        text_file.save_data_frame('data/intermediate/test_processed.json')
 
 if __name__ == "__main__":
     main()
