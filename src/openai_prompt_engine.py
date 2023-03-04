@@ -46,7 +46,6 @@ def get_dict_from_prompt(prompt: str, temperature: float, engine: str):
         presence_penalty=0
     )
     output_dict = parse_output_text(response['choices'][0]['text'])
-    print(output_dict)
     return output_dict
 
 

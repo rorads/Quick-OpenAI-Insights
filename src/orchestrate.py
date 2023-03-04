@@ -17,8 +17,6 @@ def run_text_processing():
     text_file = YTVideoTranscript(file_path, chunksize=10)
     text_file.save_data_frame('data/intermediate/processed.json')
 
-    print(text_file.get_data_frame().head())
-
 
 def run_transcript_processing():
     """
