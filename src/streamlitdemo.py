@@ -277,7 +277,7 @@ def main():
     """
     Main function to run NLP analysis on a text file.
     """
-    file_path = 'data/final/output.json'
+    file_path = 'data/final/v3output.json'
     data_frame = pd.read_json(file_path, orient='records', lines=True)
     data_frame['timecode_text'] = data_frame['timestamp'].apply(
         lambda x: time_code_from_seconds(x))
