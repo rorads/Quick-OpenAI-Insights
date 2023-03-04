@@ -1,3 +1,10 @@
+# standard python files
 .ve
 .env
 src/__pycache__/*
+
+# the default output files in the data/final folder
+# note that this allows for the versioned output files
+# i.e. data/final/v1output.* and data/final/v2output.*
+data/final/downsampled_output.*
+data/final/output.*
