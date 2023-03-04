@@ -76,6 +76,40 @@ def parse_output_text(output_text: str):
     return data
 
 
+def parallel_fetch_list(fetch_list: list, temperature: float, engine: str):
+    """
+    Returns a series with the output from the autocomplete api added as columns.
+    Args:
+        series (pd.Series): the series to process
+        temperature (float): the temperature to use for the autocomplete api
+        engine (str): the engine to use for the autocomplete api
+    """
+
+    import concurrent.futures
+    from tqdm import tqdm
+
+    # wrap the function to be executed with a single argument
+    def process_item(item):
+        return get_dict_from_prompt(item, temperature, engine)
+
+    # Define the maximum number of concurrent threads to use
+    max_threads = 50
+
+    # Use the ThreadPoolExecutor to execute the function on each item in parallel
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
+        # Submit the function to the executor for each item in the series
+        futures = [executor.submit(process_item, item) for item in fetch_list]
+
+        # Use tqdm to display a progress bar for the parallel execution
+        for _ in tqdm(concurrent.futures.as_completed(futures), total=len(fetch_list)):
+            pass
+
+        # Collect the results from the futures as they complete
+        results = [future.result() for future in futures]
+
+    return results
+
+
 def run_prompts_transcript(df: pd.DataFrame,
                            prompt_template_path: str,
                            downsample: float = 1.0,
@@ -97,16 +131,11 @@ def run_prompts_transcript(df: pd.DataFrame,
     if downsample != 1.0:
         df = df.sample(frac=downsample, random_state=42)
 
+    # create the prompt column via Jinja
     df['prompt'] = df['text'].apply(lambda x: make_prompt_jinja(text=x, template_path=prompt_template_path))
 
-    # use tqdm to show a progress bar
-    from tqdm import tqdm
-    tqdm.pandas()
-
-    # apply the get_dict_from_prompt function to the dataframe using
-    # the prompt column
-    df['output'] = df['prompt'].progress_apply(
-        lambda x: get_dict_from_prompt(x, temperature, engine))
+    # run the prompts in parallel
+    df['output'] = parallel_fetch_list(df['prompt'].values, temperature=temperature, engine=engine)
 
     # move values from the output column into their own columns
     df['topic'] = df['output'].apply(lambda x: x['topic'])
@@ -133,7 +162,7 @@ if __name__ == "__main__":
     """
     # set the openai api key
     df = pd.read_json('data/intermediate/processed.json', orient='records', lines=True)
-    df = run_prompts_transcript(df, prompt_template_path='prompt_v1.j2', downsample=0.1)
+    df = run_prompts_transcript(df, prompt_template_path='prompt_v1.j2', downsample=0.2)
     df.to_json('data/final/downsampled_output.json',
                orient='records', lines=True)
     df.to_excel('data/final/downsampled_output.xlsx',
