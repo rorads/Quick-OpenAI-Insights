@@ -3,6 +3,8 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+import seaborn as sns
+import matplotlib.pyplot as plt
 from st_aggrid import GridOptionsBuilder, AgGrid
 # can also import GridUpdateMode, DataReturnMode
 
@@ -132,7 +134,7 @@ def plot_wordcloud(data_frame: pd.DataFrame):
     st.pyplot()
 
 
-def rolling_average(rolling_df: pd.DataFrame, window_size: int = 10):
+def rolling_average(rolling_df: pd.DataFrame, window_size: int = 5):
     """
     Creates a duplicate table of the data frame with the columns for urgency, sentiment, questioning,
     and descriptive_normative all as a rolling average.
@@ -159,7 +161,7 @@ def altair_plot_line_chart(data_frame: pd.DataFrame):
     # create a duplicate table of the data frame with the columns for urgency,
     # sentiment, questioning, and descriptive_normative all as a rolling average
     if st.checkbox('Use Rolling Averages', value=True):
-        data_frame = rolling_average(data_frame, window_size=10)
+        data_frame = rolling_average(data_frame, window_size=5)
 
     # create a line chart plotting urgency, sentiment, questioning, and
     # descriptive_normative columns from the rolling_df dataframe
@@ -216,13 +218,16 @@ def altair_plot_line_chart(data_frame: pd.DataFrame):
 
 
 def plot_correlation_heatmap(data_frame: pd.DataFrame):
-    import seaborn as sns
-    import matplotlib.pyplot as plt
+    """
+    Plots a correlation heatmap of the transcript.
+    Args:
+        data_frame (pd.DataFrame): the dataframe to process
+    """
 
     # create a duplicate table of the data frame with the columns for urgency,
     # sentiment, questioning, and descriptive_normative all as a rolling average
     if st.checkbox('Use Rolling Averages for Heatmap', value=False):
-        data_frame = rolling_average(data_frame, window_size=10)
+        data_frame = rolling_average(data_frame, window_size=5)
 
     # create a sample data frame
     df = data_frame.drop(columns=['timestamp'])

@@ -24,7 +24,7 @@ def run_transcript_processing():
     """
     df = pd.read_json('data/intermediate/processed.json', orient='records', lines=True)
     df = openai_prompt_engine.run_prompts_transcript(
-        df, prompt_template_path='prompt_v1.j2', temperature=0.0)  # run with no downsample
+        df, prompt_template_path='prompt_v2.j2', temperature=0.0)  # run with no downsample
     df.to_json('data/final/output.json',
                orient='records', lines=True)
     df.to_excel('data/final/output.xlsx',
