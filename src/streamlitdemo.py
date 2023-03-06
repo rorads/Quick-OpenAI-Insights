@@ -3,6 +3,8 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+import seaborn as sns
+import matplotlib.pyplot as plt
 from st_aggrid import GridOptionsBuilder, AgGrid
 # can also import GridUpdateMode, DataReturnMode
 
@@ -216,8 +218,11 @@ def altair_plot_line_chart(data_frame: pd.DataFrame):
 
 
 def plot_correlation_heatmap(data_frame: pd.DataFrame):
-    import seaborn as sns
-    import matplotlib.pyplot as plt
+    """
+    Plots a correlation heatmap of the transcript.
+    Args:
+        data_frame (pd.DataFrame): the dataframe to process
+    """
 
     # create a duplicate table of the data frame with the columns for urgency,
     # sentiment, questioning, and descriptive_normative all as a rolling average

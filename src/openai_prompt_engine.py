@@ -35,18 +35,51 @@ def get_dict_from_prompt(prompt: str, temperature: float, engine: str):
         temperature (float): the temperature to use for the autocomplete api
         engine (str): the engine to use for the autocomplete api
     """
-    # call the autocomplete api using the make_prompt function
-    response = openai.Completion.create(
-        engine=engine,
-        prompt=prompt,
-        temperature=temperature,  # low temp = more conservative
-        max_tokens=150,
-        top_p=1,
-        frequency_penalty=0,
-        presence_penalty=0
-    )
-    output_dict = parse_output_text(response['choices'][0]['text'])
-    return output_dict
+    # Wrap the below in a try/except block to catch any a JSONDecodeError
+    try:
+        # call the autocomplete api using the make_prompt function
+        response = openai.Completion.create(
+            engine=engine,
+            prompt=prompt,
+            temperature=temperature,  # low temp = more conservative
+            max_tokens=400,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0
+        )
+        output_dict = parse_output_text(response['choices'][0]['text'])
+        return output_dict
+    except json.decoder.JSONDecodeError:
+        try:
+            print("Retrying prompt...")
+            prompt = prompt = "\n\nTry this again, but please ensure that you return valid JSON."
+            # call the autocomplete api using the make_prompt function
+            response = openai.Completion.create(
+                engine=engine,
+                prompt=prompt,
+                temperature=temperature,  # low temp = more conservative
+                max_tokens=400,
+                top_p=1,
+                frequency_penalty=0,
+                presence_penalty=0
+            )
+            output_dict = parse_output_text(response['choices'][0]['text'])
+            return output_dict
+        except json.decoder.JSONDecodeError:
+            # print the JSONDecodeError to the console
+            print(json.decoder.JSONDecodeError)
+            print("Unsuccessful, skipping...")
+            backup_output_dict = {
+                "parsed": "OpenIA failed to parse the text. Please check the text and try again.",
+                "topic": "Failed to parse text",
+                "tags": "NA",
+                "sentiment": None,
+                "urgency": None,
+                "descriptive_normative": None,
+                "questioning": None,
+            }
+
+            return backup_output_dict
 
 
 def parse_output_text(output_text: str):
@@ -62,15 +95,6 @@ def parse_output_text(output_text: str):
     # Parse the JSON data using the loads() function
 
     data = json.loads(json_text)
-
-    # wrap the line above in a try/except block which handles JSONDecodeError
-    # if the json_text is not valid json, return an empty dictionary
-    try:
-        data = json.loads(json_text)
-    except json.decoder.JSONDecodeError:
-        print("JSONDecodeError")
-        # halt the program
-        raise
 
     return data
 
@@ -137,6 +161,7 @@ def run_prompts_transcript(df: pd.DataFrame,
     df['output'] = parallel_fetch_list(df['prompt'].values, temperature=temperature, engine=engine)
 
     # move values from the output column into their own columns
+    df['text'] = df['output'].apply(lambda x: x['parsed'])  # replace the text column with the parsed text
     df['topic'] = df['output'].apply(lambda x: x['topic'])
     df['tags'] = df['output'].apply(lambda x: x['tags'])
     df['sentiment'] = df['output'].apply(lambda x: x['sentiment'])
@@ -161,7 +186,7 @@ if __name__ == "__main__":
     """
     # set the openai api key
     df = pd.read_json('data/intermediate/processed.json', orient='records', lines=True)
-    df = run_prompts_transcript(df, prompt_template_path='prompt_v1.j2', downsample=0.2)
+    df = run_prompts_transcript(df, prompt_template_path='prompt_v2.j2', downsample=0.1)
     df.to_json('data/final/downsampled_output.json',
                orient='records', lines=True)
     df.to_excel('data/final/downsampled_output.xlsx',
