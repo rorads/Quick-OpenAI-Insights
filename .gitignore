@@ -2,6 +2,7 @@
 .ve
 .env
 src/__pycache__/*
+src/utils/__pycache__/*
 
 # the default output files in the data/final folder
 # note that this allows for the versioned output files

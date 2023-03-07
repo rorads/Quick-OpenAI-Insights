@@ -5,305 +5,318 @@ import pandas as pd
 import altair as alt
 import seaborn as sns
 import matplotlib.pyplot as plt
+from wordcloud import WordCloud
+import utils.common as utils
 from st_aggrid import GridOptionsBuilder, AgGrid
-# can also import GridUpdateMode, DataReturnMode
 
-YOUTUBE_LINK = "https://www.youtube.com/watch?v=Ir3TIRmaSL8"
-
-# currently unused, but could be used to refactor the code to be more DRY and agnostic
-# to the number / detail of the metrics
-CORE_METRIC_DICT = {
-    'sentiment': 'Sentiment',
-    'urgency': 'Urgency',
-    'descriptive_normative': 'Descriptive Normative',
-    'questioning': 'Questioning'
-}
+YOUTUBE_URL = "https://www.youtube.com/watch?v=Ir3TIRmaSL8"
+TEXT_FILE_PATH = "data/final/v3output.json"
+ANALYTICS_COLUMNS = ['sentiment', 'urgency', 'descriptive_normative', 'questioning']
 
 
-def on_page_load():
-    st.set_page_config(layout="wide")
-    st.title("HMRC DALAS Transcript Analytics using ChatGPT")
-    st.write("This is a demo of the HMRC DALAS Transcript project. \
-             Below you will find a video which has been transcribed and \
-             analysed using NLP techniques. The transcript has been \
-             processed using the OpenAI Prompt Engine, and the results \
-             are displayed in the full table on the second tab.")
-    st.write("For more information please see the [GitHub repo](https://github.com/rorads/Quick-OpenAI-Insights).")
-    st.set_option('deprecation.showPyplotGlobalUse', False)
-
-
-def time_code_from_seconds(seconds: int):
+class YouTubeDashboard:
     """
-    Converts seconds to HH:MM:SS.
-    Args:
-        seconds (int): the number of seconds
-    Returns:
-        str: the timecode in HH:MM:SS format
+    Class to create a dashboard for the HMRC DALAS Transcript project.
     """
-    hours = int(seconds / 3600)
-    minutes = int((seconds - hours * 3600) / 60)
-    seconds = int(seconds - hours * 3600 - minutes * 60)
-    return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
-
-def load_youtube_video(url: str, dataframe: pd.DataFrame):
-    """
-    Loads a youtube video.
-    Args:
-        url (str): the url of the youtube video
-        dataframe (pd.DataFrame): the dataframe containing the transcript
-    """
-    video_url = url
-    timecode = 0
-
-    def stringify_row(row):
+    def __init__(self, file_path: str, youtube_url: str, rolling_window: int = 10):
         """
-        Returns a string representation of a row. The timecode should be converted from seconds to HH:MM:SS.
-        using standard arithmetic. Topic should be desplayed as is. Sentiment, urgency, descriptive_normative
-        and questioning should be despalyed as numbers between 0 and 1 with up to two decimal places, and they
-        should be highlighted on a scale from blue to red.
+        Args:
+            file_path (str): the path to the json file containing the transcript data
+            youtube_url (str): the url of the youtube video
+            rolling_window (int): the rolling window for the rolling average
         """
-        # convert the timecode from seconds to HH:MM:SS
-        timecode = row['timestamp']
-        timecode = time_code_from_seconds(timecode)
+        self.analytics_columns = ANALYTICS_COLUMNS
+        self.input_file_path = file_path
+        self.primary_data_frame = pd.read_json(file_path, orient='records', lines=True)
+        self.primary_data_frame['timecode_text'] = self.primary_data_frame['timestamp'].apply(
+            lambda x: utils.time_code_from_seconds(x))
 
-        # convert sentiment, urgency, descriptive_normative and questioning to a string
-        sentiment = f"Sentiment: {row['sentiment']:.2f}"
-        urgency = f"Urgency: {row['urgency']:.2f}"
-        descriptive_normative = f"Descriptive Normative: {row['descriptive_normative']:.2f}"
-        questioning = f"Questioning: {row['questioning']:.2f}"
+        # create a copy of the dataframe to use for the wordcloud which doesn't update when
+        # the original dataframe is updated
+        self.wordcloud_data_frame = self.primary_data_frame.copy()
+        self.rolling_data_frame = self.primary_data_frame.copy()
+        self._set_rolling_window(rolling_window)
 
-        # return the string representation of the row
-        return f"{timecode} | {row['topic']} \t|| {sentiment} | {urgency} | {descriptive_normative} | {questioning}"
+        self.youtube_url = youtube_url
+        self.input_file_path = file_path
 
-    # add a dropdown to select a timecode from a list of options drawn from
-    # the dataframe passed to the function each option should show the
-    # timestamp and topic
-    time_select = st.selectbox(
-        "Select a timecode",
-        dataframe[['timestamp',
-                   'topic',
-                   'sentiment',
-                   'urgency',
-                   'descriptive_normative',
-                   'questioning']].to_dict('records'),
-        format_func=stringify_row
-    )
+    def _set_rolling_window(self, rolling_window: int):
+        """
+        Sets the rolling window for the rolling average.
+        Args:
+            rolling_window (int): the rolling window
+        """
+        self.rolling_data_frame = utils.rolling_average(
+            self.rolling_data_frame, self.analytics_columns,
+            rolling_window)
 
-    timecode = time_select['timestamp']
+    def load_youtube_video(self):
+        """
+        Loads a youtube video along with a table which can be used to select sections to view.
+        """
 
-    video, details = st.tabs(["Watch Video", "View Segment Details"])
-    # show the details of the selected timecode in the details tab
-    with details:
-        st.write(dataframe[dataframe['timestamp'] == time_select['timestamp']].to_dict('records')[0])
-    # show the video in the video tab
-    with video:
-        st.video(video_url, start_time=timecode)
+        # load an initial selected row from the primary dataframe whilst aggrid is loading
+        selected_row = self.primary_data_frame.iloc[0]
 
+        grid_options = GridOptionsBuilder.from_dataframe(self.primary_data_frame)
+        # grid_options.configure_pagination()  # Add pagination
+        grid_options.configure_default_column(groupable=True, value=True, enableRowGroup=True, aggFunc='sum')
+        grid_options.configure_grid_options(domLayout='autoHeight')
+        grid_options.configure_side_bar()
+        grid_options.configure_auto_height(False)
 
-def plot_wordcloud(data_frame: pd.DataFrame):
-    """
-    Plots a wordcloud of the transcript.
-    Args:
-        data_frame (pd.DataFrame): the dataframe to process
-    """
+        # hide the id column from the grid, and move the timecode_text column to the front
+        grid_options.configure_column('timestamp', hide=True)
+        grid_options.configure_column('text', hide=True)
+        grid_options.configure_column('timecode_text', pinned='left', width="autoSizeColumn")
 
-    st.title("Wordcloud")
-    st.write("This is a wordcloud of the transcript.")
-    from wordcloud import WordCloud
-    import matplotlib.pyplot as plt
+        # select the first row in the grid by defualt
+        grid_options.configure_selection(selection_mode='single',
+                                         pre_selected_rows=[0])
 
-    # create a single string of all the tags and topics, minus the HMRC and Supplier tags
-    stoptags = ['hmrc', 'supllier', 's']
-    all_tags = [tag.lower() for tag in data_frame['tags'] for tag in tag]
-    # remove all stoptags from the list of tags
-    all_tags = [tag for tag in all_tags if tag not in stoptags]
-    # create a single string of all the tags and topics
-    text = ' '.join(all_tags)
-    text = text + ' '.join([topic for topic in data_frame['topic']])
-    text = text.lower()
+        grid_response = AgGrid(
+            self.primary_data_frame,
+            gridOptions=grid_options.build(),
+            fit_columns_on_grid_load=True,
+            height=200,
+        )
 
-    # Create and generate a word cloud image:
-    wordcloud = WordCloud(width=1200, height=600, background_color='black').generate(text)
+        if grid_response['selected_rows']:
+            selected_row = grid_response['selected_rows'][0]
+        else:
+            selected_row = self.primary_data_frame.iloc[0]
 
-    # Display the generated image:
-    plt.figure(figsize=(10, 5))
-    plt.imshow(wordcloud, interpolation='bilinear')
-    plt.axis("off")
-    plt.show()
-    st.pyplot()
+        video, details = st.tabs(["Watch Video", "View Segment Details"])
+        # show the details of the selected timecode in the details tab
+        with details:
+            st.write(selected_row)
+        # show the video in the video tab
+        with video:
+            st.video(self.youtube_url, start_time=selected_row['timestamp'])
 
+    def plot_wordcloud(self):
+        """
+        Plots a wordcloud of the transcript.
+        """
 
-def rolling_average(rolling_df: pd.DataFrame, window_size: int = 10):
-    """
-    Creates a duplicate table of the data frame with the columns for urgency, sentiment, questioning,
-    and descriptive_normative all as a rolling average.
-    Args:
-        data_frame (pd.DataFrame): the dataframe to process
-    Returns:
-        pd.DataFrame: the dataframe with the rolling averages
-    """
-    rolling_df['urgency'] = rolling_df['urgency'].rolling(window_size).mean()
-    rolling_df['sentiment'] = rolling_df['sentiment'].rolling(window_size).mean()
-    rolling_df['questioning'] = rolling_df['questioning'].rolling(window_size).mean()
-    rolling_df['descriptive_normative'] = rolling_df['descriptive_normative'].rolling(
-        window_size).mean()
-    return rolling_df
+        st.title("Wordcloud")
+        st.write("This is a wordcloud of the transcript.")
 
+        df = self.primary_data_frame.copy()
 
-def altair_plot_line_chart(data_frame: pd.DataFrame):
-    """
-    Plots a line chart of the transcript.
-    Args:
-        data_frame (pd.DataFrame): the dataframe to process
-    """
+        # create four rows
+        columns = st.columns(len(self.analytics_columns))
 
-    # create a duplicate table of the data frame with the columns for urgency,
-    # sentiment, questioning, and descriptive_normative all as a rolling average
-    if st.checkbox('Use Rolling Averages', value=True):
-        data_frame = rolling_average(data_frame, window_size=10)
+        # create sliders to allow the user to filter the data based on the analytics columns
+        for analytical_column, column in zip(self.analytics_columns, columns):
+            
+            # create a slider for the column
+            with column:
+                slider_value = st.slider(
+                    f"{analytical_column} range",
+                    value=(0.0, 1.0),
+                    step=0.01)
+                
+                # filter the dataframe based on the slider value
+                df = df[(df[analytical_column] >= slider_value[0]) & (df[analytical_column] <= slider_value[1])]
 
-    # create a line chart plotting urgency, sentiment, questioning, and
-    # descriptive_normative columns from the rolling_df dataframe
-    # and add a selector to choose which columns to plot
-    selected_columns = st.multiselect(
-        'Select columns to plot',
-        data_frame.columns,
-        default=['urgency', 'sentiment', 'questioning', 'descriptive_normative']
-    )
+        # create a single string of all the tags and topics, minus the HMRC and Supplier tags
+        stoptags = ['hmrc', 'supllier', 's']
+        all_tags = [tag.lower() for tag in df['tags'] for tag in tag]
+        all_tags = [tag for tag in all_tags if tag not in stoptags]
+        text = ' '.join(all_tags)
+        text = text + ' '.join([topic for topic in df['topic']])
+        text = text.lower()
 
-    # create a base chart
-    base_chart = alt.Chart(data_frame).mark_line().encode(
-        x=alt.X('timecode_text:O', title='Timecode'),
-        y=alt.Y('value:Q', title='Value'),
-        color=alt.Color('column:N', scale=alt.Scale(domain=selected_columns), legend=alt.Legend(title="Column Name")),
-        tooltip=[alt.Tooltip(c) for c in data_frame.columns]
-    )
+        # Create and generate a word cloud image:
+        try:
+            wordcloud = WordCloud(width=1200, height=600, background_color='black').generate(text)
+        except ValueError:
+            st.write("No words to display in wordcloud! Try broadening your filters.")
+            return
 
-    # create a chart with separate lines for each selected column
-    chart = base_chart.transform_fold(
-        selected_columns,
-        as_=['column', 'value']
-    ).transform_filter(
-        alt.FieldOneOfPredicate(field='column', oneOf=selected_columns)
-    )
+        # Display the generated image:
+        plt.figure(figsize=(10, 5))
+        plt.imshow(wordcloud, interpolation='bilinear')
+        plt.axis("off")
+        st.pyplot(plt)
 
-    # add a vertical hover line and display tooltip
-    hover_line = alt.Chart(data_frame).mark_rule(color='gray', strokeWidth=0).encode(
-        x=alt.X('timecode_text:O', title='Timecode'),
-        opacity=alt.condition(
-            alt.datum.timecode_text,
-            alt.value(0.5),
-            alt.value(0)
-        ),
-        tooltip=[alt.Tooltip(c) for c in data_frame.columns]
-    ).add_selection(
-        alt.selection_single(on='mouseover', nearest=True, empty='none')
-    )
+    def altair_plot_line_chart(self):
+        """
+        Plots a line chart of the transcript.
+        Args:
+            data_frame (pd.DataFrame): the dataframe to process
+        """
 
-    # combine the chart and hover line
-    combined_chart = alt.layer(chart, hover_line).resolve_scale(
-        color='independent'
-    ).properties(
-        height=500,
-        width=700
-    ).configure_legend(
-        orient='top',
-        titleFontSize=14,
-        labelFontSize=12
-    )
+        # allow the user to plot the rolling average or the original data
+        if st.checkbox('Use Rolling Averages', value=True):
+            data_frame = self.rolling_data_frame
+        else:
+            data_frame = self.primary_data_frame
 
-    # display the chart
-    st.altair_chart(combined_chart, use_container_width=True)
+        # create a line chart plotting the analytical columns from the rolling_df 
+        # dataframe and add a selector to choose which columns to plot
+        selected_columns = st.multiselect(
+            'Select columns to plot',
+            self.analytics_columns,
+            default=self.analytics_columns
+        )
 
+        # create a base chart
+        base_chart = alt.Chart(data_frame).mark_line().encode(
+            x=alt.X('timecode_text:O', title='Timecode'),
+            y=alt.Y('value:Q', title='Value'),
+            color=alt.Color('column:N', scale=alt.Scale(
+                domain=selected_columns
+            ), legend=alt.Legend(title="Column Name")),
+            tooltip=[alt.Tooltip(c) for c in data_frame.columns]
+        )
 
-def plot_correlation_heatmap(data_frame: pd.DataFrame):
-    """
-    Plots a correlation heatmap of the transcript.
-    Args:
-        data_frame (pd.DataFrame): the dataframe to process
-    """
+        # create a chart with separate lines for each selected column
+        chart = base_chart.transform_fold(
+            selected_columns,
+            as_=['column', 'value']
+        ).transform_filter(
+            alt.FieldOneOfPredicate(field='column', oneOf=selected_columns)
+        )
 
-    # create a duplicate table of the data frame with the columns for urgency,
-    # sentiment, questioning, and descriptive_normative all as a rolling average
-    if st.checkbox('Use Rolling Averages for Heatmap', value=False):
-        data_frame = rolling_average(data_frame, window_size=10)
+        # add a vertical hover line and display tooltip
+        hover_line = alt.Chart(data_frame).mark_rule(color='gray', strokeWidth=0).encode(
+            x=alt.X('timecode_text:O', title='Timecode'),
+            opacity=alt.condition(
+                alt.datum.timecode_text,
+                alt.value(0.5),
+                alt.value(0)
+            ),
+            tooltip=[alt.Tooltip(c) for c in data_frame.columns]
+        ).add_selection(
+            alt.selection_single(on='mouseover', nearest=True, empty='none')
+        )
 
-    # create a sample data frame
-    df = data_frame.drop(columns=['timestamp'])
+        # combine the chart and hover line
+        combined_chart = alt.layer(chart, hover_line).resolve_scale(
+            color='independent'
+        ).properties(
+            height=500,
+            width=700
+        ).configure_legend(
+            orient='top',
+            titleFontSize=14,
+            labelFontSize=12
+        )
 
-    # create the correlation matrix using seaborn
-    corr_matrix = df.corr()
+        # display the chart
+        st.altair_chart(combined_chart, use_container_width=True)
 
-    # plot the correlation matrix using matplotlib
-    fig, ax = plt.subplots()
-    sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', ax=ax)
+    def plot_correlation_heatmap(self):
+        """
+        Plots a correlation heatmap of the transcript. 
+        """
 
-    # display the plot using streamlit
-    st.pyplot(fig)
+        # allow the user to plot the rolling average or the original data
+        if st.checkbox('Use Rolling Averages for Heatmap', value=False):
+            data_frame = self.rolling_data_frame
+        else:
+            data_frame = self.primary_data_frame
 
+        # create a sample data frame
+        df = data_frame.drop(columns=['timestamp'])
 
-def plot_table(data_frame: pd.DataFrame):
-    gb = GridOptionsBuilder.from_dataframe(data_frame)
-    gb.configure_pagination(paginationAutoPageSize=20)  # Add pagination
-    gb.configure_side_bar()  # Add a sidebar
-    # Enable multi-row selection
-    gb.configure_selection('multiple', use_checkbox=True,
-                           groupSelectsChildren="Group checkbox select children")
+        # create the correlation matrix using seaborn
+        corr_matrix = df.corr()
 
-    # Enable pivot mode on the topic column
-    gb.configure_column('topic', enableRowGroup=True, enablePivot=True)
+        # plot the correlation matrix using matplotlib
+        fig, ax = plt.subplots()
+        sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', ax=ax)
 
-    # configure the metrics columns to be aggregated in pivot mode
-    gb.configure_column('sentiment', aggFunc='avg')
-    gb.configure_column('urgency', aggFunc='avg')
-    gb.configure_column('questioning', aggFunc='avg')
-    gb.configure_column('descriptive_normative', aggFunc='avg')
+        # display the plot using streamlit
+        st.pyplot(fig)
 
-    gridOptions = gb.build()
+    def plot_table(self):
+        """
+        Plots a full table of the transcript.
+        """
 
-    grid_response = AgGrid(
-        data_frame,
-        gridOptions=gridOptions,
-        data_return_mode='AS_INPUT',
-        update_mode='MODEL_CHANGED',
-        fit_columns_on_grid_load=False,
-        theme='streamlit',  # Add theme color to the table
-        enable_enterprise_modules=True,
-        height=600,
-        width='100%',
-        reload_data=True
-    )
+        data_frame = self.primary_data_frame
 
-    return grid_response
+        gb = GridOptionsBuilder.from_dataframe(data_frame)
+        gb.configure_side_bar()  # Add a sidebar
+        gb.configure_auto_height(False)
 
+        # Enable pivot mode on the topic column
+        gb.configure_column('topic', enableRowGroup=True, enablePivot=True)
 
-def main():
-    """
-    Main function to run NLP analysis on a text file.
-    """
-    file_path = 'data/final/v3output.json'
-    data_frame = pd.read_json(file_path, orient='records', lines=True)
-    data_frame['timecode_text'] = data_frame['timestamp'].apply(
-        lambda x: time_code_from_seconds(x))
+        # configure the metrics columns to be aggregated in pivot mode
 
-    tab1, tab2 = st.tabs(["Analytics", "Full Table"])
+        for col in self.analytics_columns:
+            gb.configure_column(col, aggFunc='avg', width=150)
 
-    with tab1:
-        st.write("Below you can view the YouTube video and some analytics it.")
-        load_youtube_video(YOUTUBE_LINK, data_frame)
-        tab1_1, tab1_2, tab1_3 = st.tabs(["Line Chart", "Wordcloud", "Correlation Matrix"])
-        with tab1_1:
-            altair_plot_line_chart(data_frame)
-        with tab1_2:
-            plot_wordcloud(data_frame)
-        with tab1_3:
-            plot_correlation_heatmap(data_frame)
+        # hide the id column from the grid, and move the timecode_text column to the front
+        gb.configure_column('timestamp', hide=True)
+        gb.configure_column('text', hide=True)
+        gb.configure_column('timecode_text', pinned='left', width="autoSizeColumn")
 
-    with tab2:
-        plot_table(data_frame)
+        grid_response = AgGrid(
+            self.primary_data_frame,
+            gridOptions=gb.build(),
+            fit_columns_on_grid_load=True,
+            height=600,
+            width='flex'
+        )
+
+        return grid_response
+
+    def on_page_load(self):
+        """
+        Runs when the page is loaded.
+        """
+        st.set_page_config(layout="wide")
+
+    def run(self):
+        """
+        Runs the dashboard.
+        """
+        self.on_page_load()
+
+        # Create a sidebar on the of the dashboard to put some documentation in
+        st.sidebar.title("Info")
+        st.sidebar.markdown("This project is provisional, and currently works on a specific YouTube video.")
+        st.sidebar.markdown("In future, the follwoing improvements will be made:")
+        st.sidebar.markdown("- The ability to pull a transcript automatically from any YouTube video")
+        st.sidebar.markdown("- The ability request processing of the given transcript (each run costs money!)")
+        st.sidebar.markdown("Suggestions are welcome - please see the linked \
+                            [Github reposistory](https://github.com/rorads/Quick-OpenAI-Insights) \
+                            for more information and to open an issue or contribute.")
+        
+        # Create a main title for the dashboard
+        st.title("HMRC DALAS Transcript Analytics using ChatGPT")
+        st.write("This is a demo of the HMRC DALAS Transcript project. \
+                Below you will find a video which has been transcribed and \
+                analysed using NLP techniques. The transcript has been \
+                processed using the OpenAI Prompt Engine, and the results \
+                are displayed in the full table on the second tab.")
+
+        tab1, tab2 = st.tabs(["Analytics", "Full Table"])
+
+        with tab1:
+            st.write("Below you can view the YouTube video and some analytics it. \
+                     Use the table to search for specific words or phrases, or to \
+                     filter based on the metrics. Click on a row to select it which \
+                     will load the YouTube video to the timecode.")
+            self.load_youtube_video()
+            tab1_1, tab1_2, tab1_3 = st.tabs(["Line Chart", "Wordcloud", "Correlation Matrix"])
+            with tab1_1:
+                self.altair_plot_line_chart()
+            with tab1_2:
+                self.plot_wordcloud()
+            with tab1_3:
+                self.plot_correlation_heatmap()
+
+        with tab2:
+            self.plot_table()
 
 
 if __name__ == "__main__":
-    on_page_load()
-    main()
+    dashboard = YouTubeDashboard(file_path=TEXT_FILE_PATH, youtube_url=YOUTUBE_URL)
+    dashboard.run()
