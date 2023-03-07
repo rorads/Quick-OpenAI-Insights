@@ -110,14 +110,14 @@ class YouTubeDashboard:
 
         # create sliders to allow the user to filter the data based on the analytics columns
         for analytical_column, column in zip(self.analytics_columns, columns):
-            
+
             # create a slider for the column
             with column:
                 slider_value = st.slider(
                     f"{analytical_column} range",
                     value=(0.0, 1.0),
                     step=0.01)
-                
+
                 # filter the dataframe based on the slider value
                 df = df[(df[analytical_column] >= slider_value[0]) & (df[analytical_column] <= slider_value[1])]
 
@@ -155,7 +155,7 @@ class YouTubeDashboard:
         else:
             data_frame = self.primary_data_frame
 
-        # create a line chart plotting the analytical columns from the rolling_df 
+        # create a line chart plotting the analytical columns from the rolling_df
         # dataframe and add a selector to choose which columns to plot
         selected_columns = st.multiselect(
             'Select columns to plot',
@@ -211,7 +211,7 @@ class YouTubeDashboard:
 
     def plot_correlation_heatmap(self):
         """
-        Plots a correlation heatmap of the transcript. 
+        Plots a correlation heatmap of the transcript.
         """
 
         # allow the user to plot the rolling average or the original data
@@ -288,7 +288,7 @@ class YouTubeDashboard:
         st.sidebar.markdown("Suggestions are welcome - please see the linked \
                             [Github reposistory](https://github.com/rorads/Quick-OpenAI-Insights) \
                             for more information and to open an issue or contribute.")
-        
+
         # Create a main title for the dashboard
         st.title("HMRC DALAS Transcript Analytics using ChatGPT")
         st.write("This is a demo of the HMRC DALAS Transcript project. \
