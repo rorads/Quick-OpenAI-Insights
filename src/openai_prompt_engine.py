@@ -164,6 +164,8 @@ def run_prompts_transcript(df: pd.DataFrame,
     df['text'] = df['output'].apply(lambda x: x['parsed'])  # replace the text column with the parsed text
     df['topic'] = df['output'].apply(lambda x: x['topic'])
     df['tags'] = df['output'].apply(lambda x: x['tags'])
+
+    # TODO: do this from data, not hard-coded
     df['sentiment'] = df['output'].apply(lambda x: x['sentiment'])
     df['urgency'] = df['output'].apply(lambda x: x['urgency'])
     df['descriptive_normative'] = df['output'].apply(

@@ -2,7 +2,7 @@
 import pandas as pd
 
 
-def rolling_average(rolling_df: pd.DataFrame, window_size: int = 10):
+def rolling_average(rolling_df: pd.DataFrame, analytics_columns: list[str], window_size: int = 10):
     """
     Creates a duplicate table of the data frame with the columns for urgency, sentiment, questioning,
     and descriptive_normative all as a rolling average.
@@ -11,11 +11,10 @@ def rolling_average(rolling_df: pd.DataFrame, window_size: int = 10):
     Returns:
         pd.DataFrame: the dataframe with the rolling averages
     """
-    rolling_df['urgency'] = rolling_df['urgency'].rolling(window_size).mean()
-    rolling_df['sentiment'] = rolling_df['sentiment'].rolling(window_size).mean()
-    rolling_df['questioning'] = rolling_df['questioning'].rolling(window_size).mean()
-    rolling_df['descriptive_normative'] = rolling_df['descriptive_normative'].rolling(
-        window_size).mean()
+
+    for column in analytics_columns:
+        rolling_df[column] = rolling_df[column].rolling(window_size).mean()
+
     return rolling_df
 
 
