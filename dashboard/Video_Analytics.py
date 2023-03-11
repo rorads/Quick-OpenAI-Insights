@@ -1,13 +1,19 @@
 # see https://towardsdatascience.com/make-dataframes-interactive-in-streamlit-c3d0c4f84ccb
-
 import streamlit as st
 import pandas as pd
 import altair as alt
 import seaborn as sns
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
-import utils.common as utils
 from st_aggrid import GridOptionsBuilder, AgGrid
+
+import sys
+import os
+# Add the parent directory to the Python path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+# Now you can import modules from the src directory
+import src.utils.common as utils
 
 YOUTUBE_URL = "https://www.youtube.com/watch?v=Ir3TIRmaSL8"
 TEXT_FILE_PATH = "data/final/v3output.json"
