@@ -1,3 +1,9 @@
+## Important Context for Contributors
+
+This work is only approved on **open and/or non-sensitive** sources. So youtube videos, or publicly avaialable documents are absolutely fine, as would be anything that is non-confidential. If you're not sure, ask.
+
+Please also note that no pushes can be made to main without approval - this is for security as well as good practice!
+
 ## Aim
 
 Currently, this project is a quick demonstration of OpenAI as a way of running analysis on text.
