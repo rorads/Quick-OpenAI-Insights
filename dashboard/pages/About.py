@@ -1,4 +1,3 @@
-# flake8: noqa: F404 (ignore undefined names)
 import streamlit as st
 
 # Adding markdown text using a magic command, eabled in the config.toml file
