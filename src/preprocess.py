@@ -3,6 +3,7 @@ return a dataframe with timestamp and text
 """
 
 import pandas as pd
+import textract as tx
 
 
 class YTVideoTranscript():
@@ -142,6 +143,30 @@ class YTVideoTranscript():
         Save the dataframe to a csv file.
         """
         self.data_frame.to_json(file_path, orient='records', lines=True)
+
+
+class Document():
+    """
+    Class to ingest a document of any type and process it into 
+    something which can be used for analysis. Textract is used to
+    extract text from a document, along with metadata such as the
+    author, date, and title.
+    """
+
+    def __init__(self, file_path):
+        """
+        Args:
+            file_path (str): path to the document file
+        """
+        self.file_path = file_path
+        self.text = self._get_text()
+
+    def _get_text(self):
+        """
+        Extract text from the document using Textract.
+        """
+        text = tx.process(self.file_path).decode('utf-8')
+        return text
 
 
 # create a main function to test the class
