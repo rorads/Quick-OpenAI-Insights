@@ -2,6 +2,8 @@ What follows is a chunk of text. I want you to return a json string with the str
 
 Note that the source text contains no punctuation, and doesn't have well defined boundaries between sentences.
 
+Descriptive_normative should take direction from how instructive the language is.
+
 Json structure:
 
 ```json
@@ -9,7 +11,7 @@ Json structure:
     "parsed": "your best effort to put punctuation and structure into the text",
     "topic": "a two or three word topic for the text",
     "tags": "a space separated list of at most five important tags for the text, each tag in quotes, and the list enclosed in square brackets",
-    "sentiment": a sentiment score for the text, ranging from 0 to 1,
+    "sentiment": a sentiment score for the text, ranging from 0 to 1.
     "urgency": an urgency score for the text, ranging from 0 to 1, where 0 is not urgent and 1 is very urgent,
     "descriptive_normative": a descriptiveness and normativitiy score for the text, ranging from 0 to 1, where 0 is descriptive and 1 is normative,
     "questioning": a questioning score for the text, ranging from 0 to 1, where 0 is not questioning and 1 is very questioning,

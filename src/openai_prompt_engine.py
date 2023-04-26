@@ -4,6 +4,7 @@ import openai
 import pandas as pd
 from jinja2 import Environment, FileSystemLoader
 from dotenv import load_dotenv
+
 load_dotenv()
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -29,48 +30,48 @@ def make_prompt_jinja(text: str, template_path: str):
 
 def get_dict_from_prompt(prompt: str, temperature: float, engine: str):
     """
-    Returns a json string from a prompt for the autocomplete api.
+    Returns a json string from a prompt for the chat api.
     Args:
         prompt (str): the prompt to use
-        temperature (float): the temperature to use for the autocomplete api
-        engine (str): the engine to use for the autocomplete api
+        temperature (float): the temperature to use for the chat api
+        engine (str): the engine to use for the chat api
     """
-    # Wrap the below in a try/except block to catch any a JSONDecodeError
+    messages = [
+        {"role": "system", "content": "You are an AI language model that parses and extracts information from text."},
+        {"role": "user", "content": prompt}
+    ]
     try:
-        # call the autocomplete api using the make_prompt function
-        response = openai.Completion.create(
-            engine=engine,
-            prompt=prompt,
-            temperature=temperature,  # low temp = more conservative
+        response = openai.ChatCompletion.create(
+            model=engine,
+            messages=messages,
+            temperature=temperature,
             max_tokens=400,
             top_p=1,
             frequency_penalty=0,
             presence_penalty=0
         )
-        output_dict = parse_output_text(response['choices'][0]['text'])
+        output_dict = parse_output_text(response['choices'][0]['message']['content'])
         return output_dict
     except json.decoder.JSONDecodeError:
         try:
             print("Retrying prompt...")
-            prompt = prompt = "\n\nTry this again, but please ensure that you return valid JSON."
-            # call the autocomplete api using the make_prompt function
-            response = openai.Completion.create(
-                engine=engine,
-                prompt=prompt,
-                temperature=temperature,  # low temp = more conservative
+            messages[-1]['content'] = "Try this again, but please ensure that you return valid JSON."
+            response = openai.ChatCompletion.create(
+                model=engine,
+                messages=messages,
+                temperature=temperature,
                 max_tokens=400,
                 top_p=1,
                 frequency_penalty=0,
                 presence_penalty=0
             )
-            output_dict = parse_output_text(response['choices'][0]['text'])
+            output_dict = parse_output_text(response['choices'][0]['message']['content'])
             return output_dict
         except json.decoder.JSONDecodeError:
-            # print the JSONDecodeError to the console
             print(json.decoder.JSONDecodeError)
             print("Unsuccessful, skipping...")
             backup_output_dict = {
-                "parsed": "OpenIA failed to parse the text. Please check the text and try again.",
+                "parsed": "OpenAI failed to parse the text. Please check the text and try again.",
                 "topic": "Failed to parse text",
                 "tags": "NA",
                 "sentiment": None,
@@ -116,7 +117,7 @@ def parallel_fetch_list(fetch_list: list, temperature: float, engine: str):
         return get_dict_from_prompt(item, temperature, engine)
 
     # Define the maximum number of concurrent threads to use
-    max_threads = 50
+    max_threads = 60
 
     # Use the ThreadPoolExecutor to execute the function on each item in parallel
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
@@ -137,7 +138,7 @@ def run_prompts_transcript(df: pd.DataFrame,
                            prompt_template_path: str,
                            downsample: float = 1.0,
                            temperature: float = 0.2,
-                           engine: str = "text-davinci-003"
+                           engine: str = "gpt-3.5-turbo"
                            ):
     """
     Returns a dataframe with the output from the autocomplete api added as columns.

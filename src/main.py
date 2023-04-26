@@ -36,7 +36,7 @@ def run_text_processing_TEAMS():
     Main function to run NLP analysis on a text file.
     """
     file_path = 'data/raw/Artificial Intelligence in Immigration - Initial Views.vtt'
-    text_file = VideoTranscript(file_path, chunksize=10, source='TEAMS')
+    text_file = VideoTranscript(file_path, chunksize=14, source='TEAMS')
     text_file.save_data_frame('data/intermediate/processed_teams.json')
 
 
@@ -54,5 +54,5 @@ def run_transcript_processing_TEAMS():
 
 
 if __name__ == "__main__":
-    run_text_processing_HMRC()
-    run_transcript_processing_HMRC()
+    run_text_processing_TEAMS()
+    run_transcript_processing_TEAMS()
