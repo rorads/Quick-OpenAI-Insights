@@ -21,6 +21,7 @@ Note that python version should be 3.10.3, though 3.8 onwards should also work w
     python3 -m venv .ve
     source .ve/bin/activate
     pip install -r requirements.txt
+    pip install -e . # this will install the package in editable mode, so you can make changes to the code and have them reflected in the environment
     ```
 
 * Windows:

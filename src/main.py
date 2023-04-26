@@ -6,19 +6,19 @@ file and return a dataframe with timestamp and text.
 
 import pandas as pd
 import openai_prompt_engine
-from preprocess import YTVideoTranscript
+from preprocess import VideoTranscript
 
 
-def run_text_processing():
+def run_text_processing_HMRC():
     """
     Main function to run NLP analysis on a text file.
     """
     file_path = 'data/raw/HMRC DALAS Transcript Raw.txt'
-    text_file = YTVideoTranscript(file_path, chunksize=10)
+    text_file = VideoTranscript(file_path, chunksize=10)
     text_file.save_data_frame('data/intermediate/processed.json')
 
 
-def run_transcript_processing():
+def run_transcript_processing_HMRC():
     """
     Main function to run NLP analysis on a text file.
     """
@@ -31,6 +31,28 @@ def run_transcript_processing():
                 sheet_name='Output', index=False)
 
 
+def run_text_processing_TEAMS():
+    """
+    Main function to run NLP analysis on a text file.
+    """
+    file_path = 'data/raw/Artificial Intelligence in Immigration - Initial Views.vtt'
+    text_file = VideoTranscript(file_path, chunksize=10, source='TEAMS')
+    text_file.save_data_frame('data/intermediate/processed_teams.json')
+
+
+def run_transcript_processing_TEAMS():
+    """
+    Main function to run NLP analysis on a text file.
+    """
+    df = pd.read_json('data/intermediate/processed_teams.json', orient='records', lines=True)
+    df = openai_prompt_engine.run_prompts_transcript(
+        df, prompt_template_path='prompt_v2.j2', temperature=0.0)  # run with no downsample
+    df.to_json('data/final/output_teams.json',
+               orient='records', lines=True)
+    df.to_excel('data/final/output_teams.xlsx',
+                sheet_name='Output', index=False)
+
+
 if __name__ == "__main__":
-    run_text_processing()
-    run_transcript_processing()
+    run_text_processing_HMRC()
+    run_transcript_processing_HMRC()
