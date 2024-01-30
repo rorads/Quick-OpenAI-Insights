@@ -1,3 +1,4 @@
+from concurrent.futures import as_completed
 import os
 import json
 import openai
@@ -117,7 +118,7 @@ def parallel_fetch_list(fetch_list: list, temperature: float, engine: str):
         return get_dict_from_prompt(item, temperature, engine)
 
     # Define the maximum number of concurrent threads to use
-    max_threads = 60
+    max_threads = 30 # note, 60 hit a rate limit
 
     # Use the ThreadPoolExecutor to execute the function on each item in parallel
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
@@ -129,7 +130,7 @@ def parallel_fetch_list(fetch_list: list, temperature: float, engine: str):
             pass
 
         # Collect the results from the futures as they complete
-        results = [future.result() for future in futures]
+        results = [future.result() for future in as_completed(futures)]
 
     return results
 

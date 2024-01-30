@@ -2,7 +2,6 @@
 
 This work is only approved on **open and/or non-sensitive** sources. So youtube videos, or publicly avaialable documents are absolutely fine, as would be anything that is non-confidential. If you're not sure, ask.
 
-Please also note that no pushes can be made to main without approval - this is for security as well as good practice!
 
 ## Aim
 
@@ -16,27 +15,23 @@ Specifically, this project looks at this video: https://www.youtube.com/watch?v=
 
 Note that python version should be 3.10.3, though 3.8 onwards should also work with the existing requirements.
 
-* OSX / Linux
-    ```sh
-    python3 -m venv .ve
-    source .ve/bin/activate
-    pip install -r requirements.txt
-    pip install -e . # this will install the package in editable mode, so you can make changes to the code and have them reflected in the environment
-    ```
+This project also uses poetry and (informally) pyenv. Ensure that both of these are set up in their default configuration. Then, within the project root folder, run:
 
-* Windows:
-    ```ps
-    py -m venv .ve
-    .\.ve\Scripts\Activate.ps1
-    pip install -r .\requirements.txt
+```sh
+pyenv install 3.10.3
+pyenv global 3.10.3
+virtualenvs.in-project = true # ensures that the virtual environment is created locally in `.venv` 
+python --version # check you're at the right version
+cd /path/to/your/project
+poetry shell
+poetry install
+```
 
-Be sure to set your python interpreter to the one in .ve within VSCode to enable interactive debugging etc.
+Be sure to set your python interpreter to the one in .ve within VSCode to enable interactive debugging etc. This should be `.venv` if you follow the steps above.
 
 ### Set up your environment
 
 - Create a copy of the `.env.example` file called `.env`. Insert valid API keys.
-
-Set your linter to flake8. This can be done by searching "select linter" in VSCode command palette.
 
 ## Quickstart:
 

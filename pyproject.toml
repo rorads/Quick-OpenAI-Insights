@@ -1,6 +1,23 @@
+[tool.poetry]
+name = "quick-openai-insights"
+version = "0.1.0"
+description = ""
+authors = ["Rory Scott <7805169+rorads@users.noreply.github.com>"]
+license = "Apache"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pandas = "^2.2.0"
+textract = "^1.6.5"
+streamlit = "^1.30.0"
+altair = "^5.2.0"
+seaborn = "^0.13.2"
+matplotlib = "^3.8.2"
+wordcloud = "^1.9.3"
+streamlit-aggrid = "^0.3.4.post3"
+
+
 [build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
-]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
@@ -16,7 +17,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import src.utils.common as utils
 
 YOUTUBE_URL = "https://www.youtube.com/watch?v=Ir3TIRmaSL8"
-TEXT_FILE_PATH = "data/final/v3output.json"
+TEXT_FILE_PATH = "data/final/output.json"
 ANALYTICS_COLUMNS = ['sentiment', 'urgency', 'descriptive_normative', 'questioning']
 
 
@@ -135,6 +136,11 @@ class YouTubeDashboard:
         text = text + ' '.join([topic for topic in df['topic']])
         text = text.lower()
 
+        # Check if text is empty
+        if not text.strip():
+            st.write("No words to display in wordcloud! Try broadening your filters.")
+            return
+
         # Create and generate a word cloud image:
         try:
             wordcloud = WordCloud(width=1200, height=600, background_color='black').generate(text)
@@ -230,7 +236,8 @@ class YouTubeDashboard:
         df = data_frame.drop(columns=['timestamp'])
 
         # create the correlation matrix using seaborn
-        corr_matrix = df.corr()
+
+        corr_matrix = df = df.select_dtypes(include=[np.number]).corr()
 
         # plot the correlation matrix using matplotlib
         fig, ax = plt.subplots()

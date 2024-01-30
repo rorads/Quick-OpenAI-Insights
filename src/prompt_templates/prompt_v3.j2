@@ -1,0 +1,25 @@
+What follows is a chunk of text. I want you to return a json string with the structure specified below.
+
+Note that the source text contains no punctuation, and doesn't have well defined boundaries between sentences.
+
+Descriptive_normative should take direction from how instructive the language is.
+
+Json structure:
+
+```json
+{
+    "parsed": "your best effort to put punctuation and structure into the text",
+    "topic": "a two or three word topic for the text",
+    "tags": "a space separated list of at most five important tags for the text, each tag in quotes, and the list enclosed in square brackets",
+    "sentiment": a sentiment star rating for the text, ranging from 0 to 5.
+    "urgency": an urgency star rating for the text, ranging from 0 to 5, where 0 stars is not urgent and 5 stars is very urgent,
+    "descriptive_normative": a descriptiveness and normativity star rating for the text, ranging from 0 to 5, where 0 stars is descriptive and 5 stars is normative,
+    "questioning": a questioning star rating for the text, ranging from 0 to 5, where 0 stars is not questioning and 5 stars is very questioning,}
+```
+
+Please return only the json string, not the wrapping text. Please also ensure that the json string is valid.
+
+Text to analyse:
+"""
+{{text}}
+"""
