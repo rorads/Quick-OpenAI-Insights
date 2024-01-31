@@ -56,7 +56,7 @@ def get_dict_from_prompt(prompt: str, temperature: float, engine: str):
     except json.decoder.JSONDecodeError:
         try:
             print("Retrying prompt...")
-            messages[-1]['content'] = "Try this again, but please ensure that you return valid JSON."
+            messages[-1]['content'] = "Try this again, but please ensure that you return valid JSON. No markdown markup!"
             response = openai.ChatCompletion.create(
                 model=engine,
                 messages=messages,
@@ -139,7 +139,7 @@ def run_prompts_transcript(df: pd.DataFrame,
                            prompt_template_path: str,
                            downsample: float = 1.0,
                            temperature: float = 0.2,
-                           engine: str = "gpt-3.5-turbo"
+                           engine: str = "gpt-4-turbo-preview"
                            ):
     """
     Returns a dataframe with the output from the autocomplete api added as columns.
@@ -161,6 +161,9 @@ def run_prompts_transcript(df: pd.DataFrame,
 
     # run the prompts in parallel
     df['output'] = parallel_fetch_list(df['prompt'].values, temperature=temperature, engine=engine)
+
+    # Parsing and extracting data from the output dictionary
+    # df = df.join(pd.json_normalize(df['output']))
 
     # move values from the output column into their own columns
     df['text'] = df['output'].apply(lambda x: x['parsed'])  # replace the text column with the parsed text
