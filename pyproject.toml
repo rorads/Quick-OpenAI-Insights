@@ -16,7 +16,12 @@ seaborn = "^0.13.2"
 matplotlib = "^3.8.2"
 wordcloud = "^1.9.3"
 streamlit-aggrid = "^0.3.4.post3"
+marimo = "^0.1.88"
+python-dotenv = "^1.0.1"
 
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.0"
 
 [build-system]
 requires = ["poetry-core"]
