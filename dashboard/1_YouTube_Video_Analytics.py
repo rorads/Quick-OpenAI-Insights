@@ -17,7 +17,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import src.utils.common as utils
 
 YOUTUBE_URL = "https://www.youtube.com/watch?v=Ir3TIRmaSL8"
-TEXT_FILE_PATH = "data/final/output.json"
+TEXT_FILE_PATH = "data/final/v4output.json"
 ANALYTICS_COLUMNS = ['sentiment', 'urgency', 'descriptive_normative', 'questioning']
 
 
