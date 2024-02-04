@@ -64,62 +64,6 @@ class VideoTranscript():
         data_frame = pd.DataFrame(data, columns=['timestamp', 'text'])
         return data_frame
 
-    def _read_file_teams(self):
-        """
-        Read the text file and return a dataframe with timestamp and text.
-
-        The raw data contains timestamps alternating with text line by line.
-        
-        Text file has the following format (the first line is a header and 
-        should be ignored.):
-            ```
-            WEBVTT
-
-            2a71ec0d-6267-4af9-b1fe-bd3e8eb5ab90/29-0
-            00:00:03.518 --> 00:00:06.110
-            Sort of things you talked about
-            before. Then maybe just to so
-
-            2a71ec0d-6267-4af9-b1fe-bd3e8eb5ab90/29-1
-            00:00:06.110 --> 00:00:07.448
-            that set the scene a little bit.
-
-            ...
-            ```
-        """
-        with open(self.file_path, 'r', encoding='UTF-8') as f:
-            lines = f.readlines()
-
-        # Remove the header
-        lines = lines[1:]
-
-        # Create a list of tuples with timestamp and text
-        data = []
-        text_block = []
-        for line in lines:
-            # Timestamp line
-            if re.match(r'\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}', line):
-                timestamp = line.split(' ')[0].split('.')[0]
-                
-                # If there's a previous text block, add it to the data list
-                if text_block:
-                    data.append((prev_timestamp, ' '.join(text_block)))
-                    text_block = []
-                
-                prev_timestamp = timestamp
-            # Text line
-            elif line.strip() and not re.match(r'\S+/\S+', line.strip()):
-                text_block.append(line.strip())
-
-        # Add the last text block to the data list
-        if text_block:
-            data.append((prev_timestamp, ' '.join(text_block)))
-
-        # Create a dataframe
-        data_frame = pd.DataFrame(data, columns=['timestamp', 'text'])
-        return data_frame   
-
-
 
     def _remove_thinking_words(self):
         """

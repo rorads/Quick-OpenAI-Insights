@@ -5,7 +5,7 @@ file and return a dataframe with timestamp and text.
 """
 
 import pandas as pd
-import openai_prompt_engine
+import openai_prompt_engine_func
 from preprocess import VideoTranscript
 
 
@@ -23,8 +23,8 @@ def run_transcript_processing_HMRC():
     Main function to run NLP analysis on a text file.
     """
     df = pd.read_json('data/intermediate/processed.json', orient='records', lines=True)
-    df = openai_prompt_engine.run_prompts_transcript(
-        df, prompt_template_path='prompt_v3.j2', temperature=0.0, downsample=1.0)  # run with no downsample
+    df = openai_prompt_engine_func.run_prompts_transcript(
+        df, temperature=0.0, downsample=1.0)  # run with no downsample 
     df.to_json('data/final/output.json',
                orient='records', lines=True)
     df.to_excel('data/final/output.xlsx',

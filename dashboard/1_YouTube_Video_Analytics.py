@@ -26,7 +26,7 @@ class YouTubeDashboard:
     Class to create a dashboard for the HMRC DALAS Transcript project.
     """
 
-    def __init__(self, file_path: str, youtube_url: str, rolling_window: int = 10):
+    def __init__(self, file_path: str, youtube_url: str, rolling_window: int = 5):
         """
         Args:
             file_path (str): the path to the json file containing the transcript data
