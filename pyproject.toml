@@ -8,7 +8,7 @@ readme = "README.md"
 license = "Apache-2.0"
 dependencies = [
     "pandas>=2.2.0,<3",
-    "textract>=1.6.5,<2",
+    "textract==1.6.5",
     "streamlit>=1.30.0,<2",
     "altair>=5.2.0,<6",
     "seaborn>=0.13.2,<0.14",
